@@ -152,7 +152,8 @@ def calAreaAndVol(polydata,ThickData,NC,NP):
 
     #Choose specific edges
     Ring1 = vtk.vtkThreshold()
-    Ring1.ThresholdByUpper(0.5)
+    Ring1.SetThresholdFunction(Ring1.THRESHOLD_UPPER)
+    Ring1.SetUpperThreshold(0.5)
     Ring1.SetInputData(Connect)
     Ring1.Update()
     Ring1 = Ring1.GetOutput()
@@ -165,7 +166,8 @@ def calAreaAndVol(polydata,ThickData,NC,NP):
 
     #Chose second ring
     Ring2 = vtk.vtkThreshold()
-    Ring2.ThresholdByLower(0.5)
+    Ring2.SetThresholdFunction(Ring2.THRESHOLD_LOWER)
+    Ring2.SetLowerThreshold(0.5)
     Ring2.SetInputData(Connect)
     Ring2.Update()
     Ring2 = Ring2.GetOutput()
@@ -410,6 +412,7 @@ def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True
     print('##############################')
     print('Starting ProcessData Function')
     print('##############################')
+    print(f"Input arguments: len(flist)={len(flist)}, ref={ref}, FT={FT}, OF={OF}, CF={CF}, prefix={prefix}, FixAndRotate={FixAndRotate}, opformat={opformat}")
 
     reader = vtk.vtkPolyDataReader()
     #################################
@@ -424,6 +427,7 @@ def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True
     reader.Update()
 
     polydata = reader.GetOutput()
+
     RefPoints = vtk_to_numpy(polydata.GetPoints().GetData())
     # Get Number of Points and Cells
     NP = polydata.GetNumberOfPoints()
@@ -457,7 +461,7 @@ def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True
 
     #Get STJ and VAJ Points
     STJ       = vtk_to_numpy(polydata.GetPointData().GetArray('STJ'))
-    VAJ       = vtk_to_numpy(polydata.GetPointData().GetArray('VAJ'))
+    VAJ       = vtk_to_numpy(polydata.GetPointData().GetArray('LVO'))
     
     STJPts = np.zeros((int(sum(STJ)),3))
     VAJPts = np.zeros((int(sum(VAJ)),3))
@@ -593,7 +597,7 @@ def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True
         
         #Get STJ and VAJ Points
         STJ       = vtk_to_numpy(polydata.GetPointData().GetArray('STJ'))
-        VAJ       = vtk_to_numpy(polydata.GetPointData().GetArray('VAJ'))
+        VAJ       = vtk_to_numpy(polydata.GetPointData().GetArray('LVO'))
         
         STJPts = np.zeros((int(sum(STJ)),3))
         VAJPts = np.zeros((int(sum(VAJ)),3))
@@ -792,7 +796,8 @@ if __name__=='__main__':
         if not os.path.exists(fdir):
             print('Error: Path does not exist:', fdir)
             sys.exit()
-        WallArea, WallVol, LumenVol, Time, Pts, WallAreaRatio, WallVolRatio, LumenVolRatio, AvgJ, AvgI1, AvgJRatio, AvgI1Ratio, TotalMotion, N, FId = ProcessData(flist=fnames,ref=ref,FT=FT,OF=OF,CF=CF,prefix=os.path.join(WDIR,'Strains'),FixAndRotate=FixAndRotate,opformat='vtp')
+        WallArea, WallVol, LumenVol, Time, Pts, WallAreaRatio, WallVolRatio, LumenVolRatio, AvgJ, AvgI1, AvgJRatio, AvgI1Ratio, TotalMotion, N, FId \
+            = ProcessData(flist=fnames,ref=ref,FT=FT,OF=OF,CF=CF,prefix=os.path.join(WDIR,'Strains'),FixAndRotate=FixAndRotate,opformat='vtp')
    
     ###################################
     # Save data
@@ -1071,7 +1076,8 @@ if __name__=='__main__':
     plt.ylim(yminC, ymaxC)
     plt.savefig(Fig4name, format='png', bbox_inches='tight')
 
-    os.system("pdflatex Summary.tex")
+    # Get the directory name where the script is located
+    os.system(f"pdflatex Summary.tex")
     pdfname = os.path.join(WDIR,'Summary.pdf')
     os.rename("Summary.pdf", pdfname )
     

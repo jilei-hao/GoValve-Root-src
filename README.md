@@ -12,3 +12,5 @@ https://govalve-root-src.readthedocs.io/
  - Mapping Toolbox
  - Bioinformatics Toolbox
  - Statistics and Machine Learning Toolbox
+- TexLive-Full (for PDF generation)
+ - `sudo apt-get install texlive-full`
