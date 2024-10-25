@@ -784,10 +784,8 @@ if __name__=='__main__':
         X = X.replace('.vtk','')
         X = np.fromstring(X, dtype=int, sep=' ')
         X=X[0]
-        print(f"-- Processing {Fname} with frame number {X}")
 
         if X==refN:
-            print(f"---- Reference frame found: {Fname}")
             ref=Fname
     NX = len(fnames)
 

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.10.21)  21 OCT 2024 16:39
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2024.10.21)  25 OCT 2024 14:58
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -429,23 +429,23 @@ Underfull \hbox (badness 10000) in paragraph at lines 28--115
  []
 
 [2] [3]
-<NormalisedDataOriginalTime.png, id=37, 702.4644pt x 284.7438pt>
+<NormalisedDataOriginalTime.png, id=37, 691.6239pt x 282.5757pt>
 File: NormalisedDataOriginalTime.png Graphic file (type png)
 <use NormalisedDataOriginalTime.png>
 Package pdftex.def Info: NormalisedDataOriginalTime.png  used on input line 126
 .
-(pdftex.def)             Requested size: 320.0935pt x 129.75415pt.
-<NormalisedDataStandardisedTime.png, id=38, 702.4644pt x 286.1892pt>
+(pdftex.def)             Requested size: 320.0935pt x 130.78406pt.
+<NormalisedDataStandardisedTime.png, id=38, 691.6239pt x 282.5757pt>
 File: NormalisedDataStandardisedTime.png Graphic file (type png)
 <use NormalisedDataStandardisedTime.png>
 Package pdftex.def Info: NormalisedDataStandardisedTime.png  used on input line
  133.
-(pdftex.def)             Requested size: 320.0935pt x 130.41278pt.
-<RawDataOriginalTime.png, id=39, 1501.0479pt x 393.8715pt>
+(pdftex.def)             Requested size: 320.0935pt x 130.78406pt.
+<RawDataOriginalTime.png, id=39, 1485.1485pt x 393.8715pt>
 File: RawDataOriginalTime.png Graphic file (type png)
 <use RawDataOriginalTime.png>
 Package pdftex.def Info: RawDataOriginalTime.png  used on input line 140.
-(pdftex.def)             Requested size: 426.79135pt x 111.98409pt.
+(pdftex.def)             Requested size: 426.79135pt x 113.18608pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
@@ -479,7 +479,7 @@ usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/sha
 re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texl
 ive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/texlive/tex
 mf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb>
-Output written on Summary.pdf (5 pages, 1290512 bytes).
+Output written on Summary.pdf (5 pages, 1289731 bytes).
 PDF statistics:
  102 PDF objects out of 1000 (max. 8388607)
  61 compressed objects within 1 object stream
