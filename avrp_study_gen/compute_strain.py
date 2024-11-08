@@ -390,7 +390,7 @@ def calVectors(polydata,Pts,Cells,NP,NC,STJMid,VAJMid):
     
     return n_Pt, l_Pt, c_Pt, n_Cell, l_Cell, c_Cell, Pts_rad
 
-def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True,opformat='vtp'):
+def ProcessData(flist,ref,OF=None,CF=None, outdir='Strains/',FixAndRotate=True,opformat='vtp'):
     '''
     Process all the files in a given list, including calculation of strains with respect to a reference
     Keyword arguments:
@@ -412,7 +412,7 @@ def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True
     print('##############################')
     print('Starting ProcessData Function')
     print('##############################')
-    print(f"Input arguments: len(flist)={len(flist)}, ref={ref}, FT={FT}, OF={OF}, CF={CF}, prefix={prefix}, FixAndRotate={FixAndRotate}, opformat={opformat}")
+    print(f"Input arguments: len(flist)={len(flist)}, ref={ref}, OF={OF}, CF={CF}, outdir={outdir}, FixAndRotate={FixAndRotate}, opformat={opformat}")
 
     reader = vtk.vtkPolyDataReader()
     #################################
@@ -489,8 +489,6 @@ def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True
     N = len(flist)
 
     # Empty arrays for deformed frames
-
-    Time          = np.zeros(N)
     ValvePosition = np.zeros(N)
     WallArea      = np.zeros(N)
     WallVol       = np.zeros(N)
@@ -528,14 +526,14 @@ def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True
         # Define File Data
         polydata  = reader.GetOutput()
         
-        # Get time of frames
-        if FId[0]<=FId[X]:
-            Time[X] = float(FId[X])*float(FT) 
-        else :
-            if FId[X]-FId[X-1]<0:
-                Time[X] = Time[X-1]+1*float(FT)
-            elif FId[X]-FId[X-1]>0:
-                Time[X] = Time[X-1]+(FId[X]-FId[X-1])*float(FT)
+        # # Get time of frames
+        # if FId[0]<=FId[X]:
+        #     Time[X] = float(FId[X])*float(FT) 
+        # else :
+        #     if FId[X]-FId[X-1]<0:
+        #         Time[X] = Time[X-1]+1*float(FT)
+        #     elif FId[X]-FId[X-1]>0:
+        #         Time[X] = Time[X-1]+(FId[X]-FId[X-1])*float(FT)
 
         if not polydata.GetPointData().GetArray(0): 
             print('Warning Wall Thickness data is missing')
@@ -734,9 +732,9 @@ def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True
         #################################
         # Write data to vtp files
         if opformat == 'vtp':
-            fname = os.path.join(prefix,os.path.split(os.path.splitext(Fname)[0])[1] + '.vtp')
+            fname = os.path.join(outdir,os.path.split(os.path.splitext(Fname)[0])[1] + '.vtp')
         elif opformat == 'vtk':
-            fname = os.path.join(prefix,os.path.split(os.path.splitext(Fname)[0])[1] + '.vtk')
+            fname = os.path.join(outdir,os.path.split(os.path.splitext(Fname)[0])[1] + '.vtk')
         else:
             raise ValueError("Only vtp and vtk output formats are allowed")
         directory = os.path.dirname(fname)
@@ -760,24 +758,45 @@ def ProcessData(flist,ref,FT,OF=None,CF=None,prefix='Strains/',FixAndRotate=True
     AvgJRatio[:]      = AvgJ[:]/AvgJ[0]
     AvgI1Ratio[:]     = AvgI1[:]/AvgI1[0]
 
-    return WallArea, WallVol, LumenVol, Time, Pts, WallAreaRatio, WallVolRatio, LumenVolRatio, AvgJ, AvgI1, AvgJRatio, AvgI1Ratio, TotalMotion, N, FId
+    return WallArea, WallVol, LumenVol, Pts, WallAreaRatio, WallVolRatio, LumenVolRatio, AvgJ, AvgI1, AvgJRatio, AvgI1Ratio, TotalMotion, N, FId
 
 if __name__=='__main__':
+    OF = int(sys.argv[1])
+    CF = int(sys.argv[2])
+    refN = int(sys.argv[3])
+    InDir = sys.argv[4]
+    OutDIR = sys.argv[5]
+
+    # Check if the directory exists
+    if not os.path.exists(InDir):
+        print('Error: Input directory does not exist:', InDir)
+        sys.exit()
+
+    if not os.path.exists(OutDIR):
+        print('Error: Output directory does not exist:', OutDIR)
+        sys.exit()
+
+    # CF should always be greater than OF
+    if CF < OF:
+        print('Error: CF should be greater than OF')
+        sys.exit()
+
+    if refN == OF:
+        OF = OF + 1
+    if refN == CF:
+        CF = CF - 1
     
-    FixAndRotate = False
-    
-    WDIR = sys.argv[1]
-    FT = float(sys.argv[2])
-    OF = int(sys.argv[3])
-    CF = int(sys.argv[4])
-    refN = OF-1 #int(sys.argv[5])
         
-    print("Computing root strain")
-    print("Frame time:",FT)
+    print("\nComputing root strain ...")
+    print("Open Frame:",OF)
+    print("Close Frame:",CF)
+    print("Reference Frame:",refN)
+
     
-    fnames = sorted(glob.glob(os.path.join(WDIR,'*med*.vtk')))
+    fnames = sorted(glob.glob(os.path.join(InDir,'*med*.vtk')))
     fdir = os.path.dirname(fnames[0])
 
+    # get the filename of the reference TP
     common = os.path.commonprefix(fnames)
     for Fname in list(fnames):
         X = Fname.replace(common,'')
@@ -787,307 +806,12 @@ if __name__=='__main__':
 
         if X==refN:
             ref=Fname
-    NX = len(fnames)
 
-    if not fnames:
-        print(WDIR," is empty")
-    else:
-        fdir = os.path.dirname(fnames[0])
-        # Check Directory
-        if not os.path.exists(fdir):
-            print('Error: Path does not exist:', fdir)
-            sys.exit()
-        WallArea, WallVol, LumenVol, Time, Pts, WallAreaRatio, WallVolRatio, LumenVolRatio, AvgJ, AvgI1, AvgJRatio, AvgI1Ratio, TotalMotion, N, FId \
-            = ProcessData(flist=fnames,ref=ref,FT=FT,OF=OF,CF=CF,prefix=os.path.join(WDIR,'Strains'),FixAndRotate=FixAndRotate,opformat='vtp')
-   
-    ###################################
-    # Save data
-    DataLocation = os.path.join(WDIR,'Data.npz')
-    np.savez(DataLocation,Time=Time,Pts=Pts,WallArea=WallArea,WallVol=WallVol, LumenVol=LumenVol, WallAreaRatio=WallAreaRatio, WallVolRatio=WallVolRatio, LumenVolRatio=LumenVolRatio, AvgJ=AvgJ,AvgI1=AvgI1, AvgJRatio=AvgJRatio, AvgI1Ratio=AvgI1Ratio, N=N, OF=OF, CF=CF,refN = refN)
+    if ref is None:
+        print('Error: Reference frame not found')
+        sys.exit()
 
-    CSVDataOriginal = np.zeros((NX,15))
-    CSVDataStandardA = np.zeros((33,15))
-    CSVDataStandardB = np.zeros((68,15))
-    CSVDataStandard = np.zeros((101,15))
-
-    CSVDataOriginal[:,0]  = Time
-    CSVDataOriginal[:,1]  = WallArea
-    CSVDataOriginal[:,2]  = WallVol
-    CSVDataOriginal[:,3]  = LumenVol
-    CSVDataOriginal[:,4]  = WallAreaRatio
-    CSVDataOriginal[:,5]  = WallVolRatio
-    CSVDataOriginal[:,6]  = LumenVolRatio
-    CSVDataOriginal[:,7]  = AvgJ
-    CSVDataOriginal[:,8]  = AvgI1
-    CSVDataOriginal[:,9]  = AvgJRatio
-    CSVDataOriginal[:,10] = AvgI1Ratio
-    CSVDataOriginal[:,11] = np.full(NX,N)
-    CSVDataOriginal[:,12] = np.full(NX,OF)
-    CSVDataOriginal[:,13] = np.full(NX,CF)
-    CSVDataOriginal[:,14] = np.full(NX,refN)
-
-    TimeOpen  = np.linspace(0,320,33)
-    TimeClose = np.linspace(330,1000,68)
-    TimeStandard  = np.concatenate((TimeOpen,TimeClose))
-
-    Oid = int(OF) - int(refN)
-    Cid = int(CF) - int(refN)
-
-    # CSVDataStandard[:,0] = np.concatenate((TimeStandard,TimeStandard[0]),axis=None)
-    CSVDataStandard[:,0] = TimeStandard
-    for i in range(1,15):
-        CSVDataStandardA[:,i] = np.interp(np.linspace(Time[0],Time[Cid],33),Time[0:Cid+1],CSVDataOriginal[0:Cid+1,i])
-        CSVDataStandardB[:,i] = np.interp(np.linspace(Time[Cid],Time[NX-1]+Time[0],68),np.concatenate((Time[Cid:NX],Time[NX-1]+Time[0]),axis=None),np.concatenate((CSVDataOriginal[Cid:NX,i],CSVDataOriginal[0,i]),axis=None))
-        CSVDataStandard[:,i]  = np.concatenate((CSVDataStandardA[:,i],CSVDataStandardB[:,i]),axis=None)
+    ProcessData(flist=fnames, ref=ref, OF=OF, CF=CF, \
+                outdir=OutDIR, FixAndRotate=False, opformat='vtp')
     
-    # With the Standardised data saved, reorder the original data to be in the file order
-    # Find Id of reference frame
-    for i,X in enumerate(FId):
-        if X==np.min(FId):
-            RefId = i
-
-    # Sort reference area to be first in list
-    FIdOriginal = np.zeros(N)
-    FIdOriginal[0:N-RefId] = [int(i) for i in range(RefId,N)]
-    FIdOriginal[N-RefId:N] = [int(i) for i in range(0,RefId)]
-    
-    for i,X in enumerate(FId[FIdOriginal.astype(int)]):
-        if X==refN:
-            refId=i
-        if X==OF:
-            OFId = i
-        if X==CF:
-            CFId = i
-    
-    CSVDataOriginal = np.zeros((NX+1,15))
-    CSVDataOriginal[:,0]    = np.concatenate((FId[FIdOriginal.astype(int)]*FT,FId[FIdOriginal.astype(int)][NX-1]*FT+FId[FIdOriginal.astype(int)][0]*FT),axis=None)
-    CSVDataOriginal[:NX,1]  = np.array(WallArea)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,2]  = np.array(WallVol)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,3]  = np.array(LumenVol)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,4]  = np.array(WallAreaRatio)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,5]  = np.array(WallVolRatio)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,6]  = np.array(LumenVolRatio)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,7]  = np.array(AvgJ)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,8]  = np.array(AvgI1)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,9]  = np.array(AvgJRatio)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,10] = np.array(AvgI1Ratio)[FIdOriginal.astype(int)]
-    CSVDataOriginal[:NX,11] = np.full(NX,N)
-    CSVDataOriginal[:NX,12] = np.full(NX,OF)
-    CSVDataOriginal[:NX,13] = np.full(NX,CF)
-    CSVDataOriginal[:NX,14] = np.full(NX,refN)
-    
-    for i in range(1,15):
-        CSVDataOriginal[:,i] = np.concatenate((CSVDataOriginal[:NX,i],CSVDataOriginal[0,i]),axis=None)
-        
-    CSVDataOriginalFile = os.path.join(WDIR,'CSVDataOriginal.csv')
-    CSVDataStandardFile = os.path.join(WDIR,'CSVDataStandard.csv')
-
-    np.savetxt(CSVDataOriginalFile, CSVDataOriginal, delimiter=",",header="Time, Wall Area,Wall Volume, Lumen Volume, Wall Area Ratio, Wall Volume Ratio, Lumen Volume Ratio, Avg J,Avg I1, Avg J Ratio, Avg I1 Ratio, No. of Frames, Open Frame, Closing Frame, Ref Frame")
-    np.savetxt(CSVDataStandardFile, CSVDataStandard, delimiter=",",header="Time, Wall Area, Wall Volume, Lumen Volume, Wall Area Ratio, Wall Volume Ratio, Lumen Volume Ratio, Average J, Average I1, Average J Ratio, Average I1 Ratio, No. of Frames, Open Frame, Closing Frame, Ref Frame")
-
-    Fig1name = 'NormalisedDataOriginalTime.png'
-    Fig2name = 'NormalisedDataStandardisedTime.png'
-    Fig3name = 'RawDataOriginalTime.png'
-    Fig4name = 'RawDataStandardisedTime.png'
-
-    # Figure 1   
-    Plot_Ymax = np.amax(np.concatenate((CSVDataOriginal[:,4],CSVDataOriginal[:,5],CSVDataOriginal[:,6]),axis=None))
-    Plot_Ymin = np.amin(np.concatenate((CSVDataOriginal[:,4],CSVDataOriginal[:,5],CSVDataOriginal[:,6]),axis=None))
-    Plot_Yrange = Plot_Ymax - Plot_Ymin
-    ymin = Plot_Ymin - Plot_Yrange*0.2
-    ymax = Plot_Ymax + Plot_Yrange*0.1
-    
-    OpenFrameTime = np.ones(100)*CSVDataOriginal[OFId,0]
-    CloseFrameTime = np.ones(100)*CSVDataOriginal[CFId,0]
-    OpenFrameRange = np.linspace(ymin,np.max(np.concatenate((CSVDataOriginal[OFId,4],CSVDataOriginal[OFId,5],CSVDataOriginal[OFId,6]),axis=None)),100)
-    CloseFrameRange = np.linspace(ymin,np.max(np.concatenate((CSVDataOriginal[CFId,4],CSVDataOriginal[CFId,5],CSVDataOriginal[CFId,6]),axis=None)),100)
-    
-    plt.figure(num=1,figsize=(7,4))
-    plt.plot(OpenFrameTime,OpenFrameRange, '--',c='0.65',label='Open')
-    plt.plot(CloseFrameTime,CloseFrameRange,  '--',c='0.35',label='Close')
-    plt.plot(CSVDataOriginal[:,0], CSVDataOriginal[:,4],'r',label='Wall Area Ratio')
-    plt.plot(CSVDataOriginal[:,0], CSVDataOriginal[:,5],'b',label='Wall Volume Ratio')
-    plt.plot(CSVDataOriginal[:,0],CSVDataOriginal[:,6],'k',label='Lumen Volume Ratio')
-    plt.set_title=('Raw Time Data')
-    plt.xlabel('Time (ms)',size=20,fontname='Times')
-    plt.ylabel('Ratio ',size=20,fontname='Times')
-    plt.xticks(size=16,fontname='Times')
-    plt.yticks(size=16,fontname='Times')
-    lgd = plt.legend(bbox_to_anchor=(1.04,1), loc="upper left",prop={'family':'Times','size':'14'})
-    plt.ylim(ymin, ymax)
-    plt.savefig(Fig1name, format='png', bbox_inches='tight')
-
-
-    # Figure 2
-    # For standardised time, get index for time moment that is equivalent to the valve opening time
-    if CSVDataOriginal[OFId,0]>CSVDataOriginal[refId,0]:
-        OF_Stan = int(100*(CSVDataOriginal[OFId,0]-CSVDataOriginal[refId,0])/(np.max(CSVDataOriginal[:,0])-np.min(CSVDataOriginal[:,0])))
-    elif CSVDataOriginal[OFId,0]<CSVDataOriginal[refId,0]:
-        OF_Stan = int(100*(CSVDataOriginal[refId,0]-CSVDataOriginal[OFId,0])/(np.max(CSVDataOriginal[:,0])-np.min(CSVDataOriginal[:,0])))
-    elif OFId == refId:
-        OF_Stan = 0
-        
-    Plot_Ymax = np.amax(np.concatenate((CSVDataStandard[:,4],CSVDataStandard[:,5],CSVDataStandard[:,6]),axis=None))
-    Plot_Ymin = np.amin(np.concatenate((CSVDataStandard[:,4],CSVDataStandard[:,5],CSVDataStandard[:,6]),axis=None))
-    Plot_Yrange = Plot_Ymax - Plot_Ymin
-    ymin = Plot_Ymin - Plot_Yrange*0.2
-    ymax = Plot_Ymax + Plot_Yrange*0.1
-    
-    OpenFrameTime = np.ones(100)*CSVDataStandard[OF_Stan,0]
-    CloseFrameTime = np.ones(100)*CSVDataStandard[33,0]
-    OpenFrameRange = np.linspace(ymin,np.max(np.concatenate((CSVDataStandard[OF_Stan,4],CSVDataStandard[OF_Stan,5],CSVDataStandard[OF_Stan,6]),axis=None)),100)
-    CloseFrameRange = np.linspace(ymin,np.max(np.concatenate((CSVDataStandard[33,4],CSVDataStandard[33,5],CSVDataStandard[33,6]),axis=None)),100)
-
-    plt.figure(num=2,figsize=(7,4))
-    plt.plot(OpenFrameTime,OpenFrameRange, '--',c='0.65',label='Open')
-    plt.plot(CloseFrameTime,CloseFrameRange,  '--',c='0.35',label='Close')
-    plt.plot(CSVDataStandard[:,0], CSVDataStandard[:,4],'r',label='Wall Area Ratio')
-    plt.plot(CSVDataStandard[:,0],CSVDataStandard[:,5],'b',label='Wall Volume Ratio')
-    plt.plot(CSVDataStandard[:,0],CSVDataStandard[:,6],'k',label='Lumen Volume Ratio')
-    plt.set_title=('Standardised Time Data')
-    plt.xlabel('Time (ms)',size=20,fontname='Times')
-    plt.ylabel('Ratio ',size=20,fontname='Times')
-    plt.xticks(size=16,fontname='Times')
-    plt.yticks(size=16,fontname='Times')
-    lgd = plt.legend(bbox_to_anchor=(1.04,1), loc="upper left",prop={'family':'Times','size':'14'})
-    plt.ylim(ymin, ymax)
-    plt.savefig(Fig2name, format='png', bbox_inches='tight')
-
-
-    # Figure 3
-    Plot_YmaxA = np.amax(CSVDataOriginal[:,1]/1000)
-    Plot_YminA = np.amin(CSVDataOriginal[:,1]/1000)
-    Plot_YrangeA = Plot_YmaxA - Plot_YminA
-    yminA = Plot_YminA - Plot_YrangeA*0.2
-    ymaxA = Plot_YmaxA + Plot_YrangeA*0.1
-    
-    Plot_YmaxB = np.amax(CSVDataOriginal[:,2]/1000)
-    Plot_YminB = np.amin(CSVDataOriginal[:,2]/1000)
-    Plot_YrangeB = Plot_YmaxB - Plot_YminB
-    yminB = Plot_YminB - Plot_YrangeB*0.2
-    ymaxB = Plot_YmaxB + Plot_YrangeB*0.1
-    
-    Plot_YmaxC = np.amax(CSVDataOriginal[:,3]/1000)
-    Plot_YminC = np.amin(CSVDataOriginal[:,3]/1000)
-    Plot_YrangeC = Plot_YmaxC - Plot_YminC
-    yminC = Plot_YminC - Plot_YrangeC*0.2
-    ymaxC = Plot_YmaxC + Plot_YrangeC*0.1
-    
-    OpenFrameTime    = np.ones(100)*CSVDataOriginal[OFId,0]
-    CloseFrameTime   = np.ones(100)*CSVDataOriginal[CFId,0]
-    OpenFrameRangeA  = np.linspace(yminA,np.max(CSVDataOriginal[OFId,1]/1000),100)
-    CloseFrameRangeA = np.linspace(yminA,np.max(CSVDataOriginal[CFId,1]/1000),100)
-    OpenFrameRangeB  = np.linspace(yminB,np.max(CSVDataOriginal[OFId,2]/1000),100)
-    CloseFrameRangeB = np.linspace(yminB,np.max(CSVDataOriginal[CFId,2]/1000),100)
-    OpenFrameRangeC  = np.linspace(yminC,np.max(CSVDataOriginal[OFId,3]/1000),100)
-    CloseFrameRangeC = np.linspace(yminC,np.max(CSVDataOriginal[CFId,3]/1000),100)
-
-
-    OpenFrameTime = np.ones(100)*CSVDataOriginal[OFId,0]
-    CloseFrameTime = np.ones(100)*CSVDataOriginal[CFId,0]
-    
-    plt.figure(num=3,figsize=(25, 6))
-    plt.subplot(1,3,1)
-    plt.plot(OpenFrameTime,OpenFrameRangeA, '--',c='0.65')
-    plt.plot(CloseFrameTime,CloseFrameRangeA,  '--',c='0.35')
-    plt.plot(CSVDataOriginal[:,0], CSVDataOriginal[:,1]/1000,'r')
-    plt.xlabel('Time (ms)',size=20,fontname='Times')
-    plt.ylabel('Wall Area (x10$^3$ mm$^2$)',size=20,fontname='Times')
-    plt.xticks(size=16,fontname='Times')
-    plt.yticks(size=16,fontname='Times')
-    plt.ylim(yminA, ymaxA)
-    plt.subplot(1,3,2)
-    plt.plot(OpenFrameTime,OpenFrameRangeB, '--',c='0.65')
-    plt.plot(CloseFrameTime,CloseFrameRangeB,  '--',c='0.35')
-    plt.plot( CSVDataOriginal[:,0],CSVDataOriginal[:,2]/1000,'b')
-    plt.xlabel('Time (ms)',size=20,fontname='Times')
-    plt.ylabel('Wall Volume (x10$^3$ mm$^3$)',size=20,fontname='Times')
-    plt.xticks(size=16,fontname='Times')
-    plt.yticks(size=16,fontname='Times')
-    plt.ylim(yminB, ymaxB)
-    plt.subplot(1,3,3)
-    plt.plot(OpenFrameTime,OpenFrameRangeC, '--',c='0.65')
-    plt.plot(CloseFrameTime,CloseFrameRangeC,  '--',c='0.35')
-    plt.plot(CSVDataOriginal[:,0],CSVDataOriginal[:,3]/1000,'k')
-    plt.set_title=('Raw Time Data')
-    plt.xlabel('Time (ms)',size=20,fontname='Times')
-    plt.ylabel('Lumen Volume (x10$^3$ mm$^3$)',size=20,fontname='Times')
-    plt.xticks(size=16,fontname='Times')
-    plt.yticks(size=16,fontname='Times')
-    plt.ylim(yminC, ymaxC)
-    plt.savefig(Fig3name, format='png', bbox_inches='tight')
-    
-    
-    # Figure 4
-    Plot_YmaxA = np.amax(CSVDataStandard[:,1]/1000)
-    Plot_YminA = np.amin(CSVDataStandard[:,1]/1000)
-    Plot_YrangeA = Plot_YmaxA - Plot_YminA
-    yminA = Plot_YminA - Plot_YrangeA*0.2
-    ymaxA = Plot_YmaxA + Plot_YrangeA*0.1
-    
-    Plot_YmaxB = np.amax(CSVDataStandard[:,2]/1000)
-    Plot_YminB = np.amin(CSVDataStandard[:,2]/1000)
-    Plot_YrangeB = Plot_YmaxB - Plot_YminB
-    yminB = Plot_YminB - Plot_YrangeB*0.2
-    ymaxB = Plot_YmaxB + Plot_YrangeB*0.1
-    
-    Plot_YmaxC = np.amax(CSVDataStandard[:,3]/1000)
-    Plot_YminC = np.amin(CSVDataStandard[:,3]/1000)
-    Plot_YrangeC = Plot_YmaxC - Plot_YminC
-    yminC = Plot_YminC - Plot_YrangeC*0.2
-    ymaxC = Plot_YmaxC + Plot_YrangeC*0.1
-    
-    OpenFrameTime = np.ones(100)*CSVDataStandard[OF_Stan,0]
-    CloseFrameTime = np.ones(100)*CSVDataStandard[33,0]
-    OpenFrameRangeA  = np.linspace(yminA,np.max(CSVDataStandard[OF_Stan,1]/1000),100)
-    CloseFrameRangeA = np.linspace(yminA,np.max(CSVDataStandard[33,1]/1000),100)
-    OpenFrameRangeB  = np.linspace(yminB,np.max(CSVDataStandard[OF_Stan,2]/1000),100)
-    CloseFrameRangeB = np.linspace(yminB,np.max(CSVDataStandard[33,2]/1000),100)
-    OpenFrameRangeC  = np.linspace(yminC,np.max(CSVDataStandard[OF_Stan,3]/1000),100)
-    CloseFrameRangeC = np.linspace(yminC,np.max(CSVDataStandard[33,3]/1000),100)
-    
-    plt.figure(num=4,figsize=(25, 6))
-    plt.subplot(1,3,1)
-    plt.plot(OpenFrameTime,OpenFrameRangeA, '--',c='0.65')
-    plt.plot(CloseFrameTime,CloseFrameRangeA,  '--',c='0.35')
-    plt.plot(CSVDataStandard[:,0], CSVDataStandard[:,1]/1000,'r')
-    plt.xlabel('Time (ms)',size=20,fontname='Times')
-    plt.ylabel('Wall Area (x10$^3$ mm$^2$)',size=20,fontname='Times')
-    plt.xticks(size=16,fontname='Times')
-    plt.yticks(size=16,fontname='Times')
-    plt.ylim(yminA, ymaxA)
-    plt.subplot(1,3,2)
-    plt.plot(OpenFrameTime,OpenFrameRangeB, '--',c='0.65')
-    plt.plot(CloseFrameTime,CloseFrameRangeB,  '--',c='0.35')
-    plt.plot( CSVDataStandard[:,0],CSVDataStandard[:,2]/1000,'b')
-    plt.xlabel('Time (ms)',size=20,fontname='Times')
-    plt.ylabel('Wall Volume (x10$^3$ mm$^3$)',size=20,fontname='Times')
-    plt.xticks(size=16,fontname='Times')
-    plt.yticks(size=16,fontname='Times')
-    plt.ylim(yminB, ymaxB)
-    plt.subplot(1,3,3)
-    plt.plot(OpenFrameTime,OpenFrameRangeC, '--',c='0.65')
-    plt.plot(CloseFrameTime,CloseFrameRangeC,  '--',c='0.35')
-    plt.plot(CSVDataStandard[:,0],CSVDataStandard[:,3]/1000,'k')
-    plt.set_title=('Raw Time Data')
-    plt.xlabel('Time (ms)',size=20,fontname='Times')
-    plt.ylabel('Lumen Volume (x10$^3$ mm$^3$)',size=20,fontname='Times')
-    plt.xticks(size=16,fontname='Times')
-    plt.yticks(size=16,fontname='Times')
-    plt.ylim(yminC, ymaxC)
-    plt.savefig(Fig4name, format='png', bbox_inches='tight')
-
-    # Get the directory name where the script is located
-    os.system(f"pdflatex Summary.tex")
-    pdfname = os.path.join(WDIR,'Summary.pdf')
-    os.rename("Summary.pdf", pdfname )
-    
-    Fig1name = os.path.join(WDIR,'NormalisedDataOriginalTime.png')
-    Fig2name = os.path.join(WDIR,'NormalisedDataStandardisedTime.png')
-    Fig3name = os.path.join(WDIR,'RawDataOriginalTime.png')
-    Fig4name = os.path.join(WDIR,'RawDataStandardisedTime.png')
-    
-    os.rename("NormalisedDataOriginalTime.png", Fig1name)
-    os.rename("NormalisedDataStandardisedTime.png", Fig2name)
-    os.rename("RawDataOriginalTime.png", Fig3name)
-    os.rename("RawDataStandardisedTime.png", Fig4name)
+    print("Done")
