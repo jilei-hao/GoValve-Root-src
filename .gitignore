@@ -44,3 +44,6 @@ pip-wheel-metadata/
 .mypy_cache/
 .pyre/
 .pytype/
+
+# ignore log files
+*.log
