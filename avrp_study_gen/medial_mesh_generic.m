@@ -73,14 +73,6 @@ for i = 1 : nrot
     xrange = [1 ceil(max(pts_slab_pos(:,1)) + buff_pad)];
     zrange = [1 ceil(max(pts_slab_pos(:,3)) + buff_pad)];
 
-    % disp(['xrange: ' num2str(xrange)]);
-    % disp(['zrange: ' num2str(zrange)]);
-
-    % disp('pts_slab_pos_z: ')
-    % disp(num2str(round(pts_slab_pos(:,3))))
-    % disp('pts_slab_pos_x: ')
-    % disp(num2str(round(pts_slab_pos(:,1))))
-
     % rasterize the points
     img = zeros(zrange(2),xrange(2));
     z_indices = round(pts_slab_pos(:,3));
@@ -170,30 +162,13 @@ for i = 1 : nrot
     % resampled 2D contour with all four quadrants
     fap = [fap1; fap2(2:end,:); fap3(2:end,:); fap4(2:end-1,:)];
     
-    %     plot(fap(:,1),fap(:,2),'LineWidth',2.5); hold on;
-    %     plot(fap(e1,1),fap(e1,2),'ro');
-    %     plot(fap(e2,1),fap(e2,2),'mo');
-    %     plot(fap(c1,1),fap(c1,2),'ko');
-    %     plot(fap(c2,1),fap(c2,2),'go');
-    %     hold off;
-    
     % resampled 3D contour, rotated back 
     pts_slice = [fap(:,1) zeros(length(fap),1) fap(:,2)];
     pts_zrot_inv = tform_apply(pts_slice,Tz_inv);
     pts_resamp(:,:,i) = pts_zrot_inv/10;
     pts_resamp(:,3,i) = pts_resamp(:,3,i) - buff_vertical;
     
-    %     figure(4)
-    %     plot3(pts_resamp(:,1,i),pts_resamp(:,2,i),pts_resamp(:,3,i),'r','LineWidth',1.5);
-    %     hold on
-    
 end
-
-% for j = 1 : nsamp
-%     pts = squeeze(pts_resamp(j,:,:));
-%     pts = pts';
-%     plot3(pts(:,1),pts(:,2),pts(:,3),'b','LineWidth',1.5);
-% end
 
 % assign an index to each boundary point
 pts_resamp(:,4,:) = 0;
