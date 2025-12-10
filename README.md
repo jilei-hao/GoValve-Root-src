@@ -4,3 +4,13 @@ This repository provides code for computing aortic root strain over the cardiac 
 
 Documentation for GoValve-Root can be found here:
 https://govalve-root-src.readthedocs.io/
+
+### Prerequisites
+- MATLAB AddOns
+ - Optimization Toolbox
+ - Image Processing Toolbox
+ - Mapping Toolbox
+ - Bioinformatics Toolbox
+ - Statistics and Machine Learning Toolbox
+- TexLive-Full (for PDF generation)
+ - `sudo apt-get install texlive-full`
